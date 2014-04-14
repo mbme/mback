@@ -1,7 +1,5 @@
-- install/uninstall test
-- ask to install/uninstall
+- check if files are installed when removing repo
 - load global config
-- github
 - handleErr string interpolation
 - file system API to simplify testing
 - tests

@@ -1,13 +1,13 @@
 package repository
 
 import (
-	"errors"
 	"fmt"
-	conf "mback/config"
 	"mback/log"
 	"mback/utils"
 	"os"
-	path "path/filepath"
+	"os/user"
+	"strconv"
+	"syscall"
 )
 
 const (
@@ -18,69 +18,57 @@ const (
 
 type Repository struct {
 	Name    string `json:"-"`
-	Records []Record
+	Records []*Record
 }
 
-func New(name string) (r Repository) {
+func Create(name string) (r Repository, err error) {
+	if exists(name) {
+		return r, fmt.Errorf("repository '%s' already exists", name)
+	}
+
 	r = Repository{Name: name}
+
+	err = os.Mkdir(r.GetRootPath(), DIR_PERM)
+	if err != nil {
+		return
+	}
+	log.Debug("created directory for repository %v", r.Name)
+
+	r.Records = make([]*Record, 0)
+
+	err = r.writeConfig()
+	if err != nil {
+		return
+	}
+
+	log.Debug("created empty config file for repository %v", r.Name)
 	return
 }
 
-func (r *Repository) GetPath() string {
-	return path.Join(conf.GetRepositoryRoot(), r.Name)
-}
+func Open(name string) (r *Repository, err error) {
+	r = &Repository{Name: name}
 
-func (r *Repository) Exists() bool {
-	_, err := os.Stat(r.GetPath())
-	return !os.IsNotExist(err)
-}
-
-func (r *Repository) Create() (err error) {
-	err = os.Mkdir(r.GetPath(), DIR_PERM)
-	if err != nil {
-		return
-	}
-	log.Debug("Created directory for repository %v", r.Name)
-
-	r.Records = make([]Record, 0)
-
-	err = r.WriteConfig()
-	if err != nil {
-		return
+	if !exists(name) {
+		return r, fmt.Errorf("repository '%s' doesn't exist", name)
 	}
 
-	log.Debug("Created empty config file for repository %v", r.Name)
+	err = r.readConfig()
+
+	if err == nil {
+		for _, rec := range r.Records {
+			rec.repository = r
+		}
+	}
+
 	return
 }
 
 func (r *Repository) Delete() (err error) {
-	return os.RemoveAll(r.GetPath())
+	return os.RemoveAll(r.GetRootPath())
 }
 
-func (r *Repository) AddFiles(files ...string) (err error) {
-	err = r.ReadConfig()
-	if err != nil {
-		return
-	}
-
-	for _, file_path := range files {
-		err = r.addFile(file_path)
-		if err != nil {
-			return
-		}
-	}
-
-	return
-}
-
-func (r *Repository) RemoveFiles(ids ...int) (err error) {
-	for _, id := range ids {
-		err = r.removeRecord(id)
-		if err != nil {
-			return
-		}
-	}
-	return
+func (r *Repository) GetRootPath() string {
+	return getRepoRootPath(r.Name)
 }
 
 func (r *Repository) ListIds() (ids []int) {
@@ -92,59 +80,17 @@ func (r *Repository) ListIds() (ids []int) {
 	return
 }
 
-func (r *Repository) ReadConfig() (err error) {
-	if r.Records != nil {
-		log.Debug("Config was already read")
-		return
-	}
-
-	file_path := r.getConfigFile()
-
-	file, err := os.Open(file_path)
-	if err != nil {
-		return
-	}
-
-	defer file.Close()
-
-	err = r.decode(file)
-	if err != nil {
-		return
-	}
-
-	return
-}
-
-func (r *Repository) WriteConfig() (err error) {
-	if r.Records == nil {
-		err = errors.New("Repository config is nil")
-		return
-	}
-
-	file_path := r.getConfigFile()
-
-	file, err := os.OpenFile(file_path, os.O_WRONLY|os.O_CREATE, FILE_PERM)
-	if err != nil {
-		return
-	}
-
-	defer file.Close()
-
-	err = r.encode(file)
-	return
-}
-
 func (r *Repository) GetRecord(id int) (record *Record, pos int, err error) {
 	pos = -1
-	r.eachPos(func(rec Record, i int) {
+	r.eachPos(func(rec *Record, i int) {
 		if rec.Id == id {
-			record = &rec
+			record = rec
 			pos = i
 		}
 	})
 
 	if record == nil {
-		err = fmt.Errorf("Can't find record %d", id)
+		err = fmt.Errorf("can't find record %d", id)
 	}
 	return
 }
@@ -165,7 +111,7 @@ func (r *Repository) InstallFile(id int) (err error) {
 		}
 	}
 
-	repo_file_path := r.getRepoFile(rec.GetRepoFileName())
+	repo_file_path := rec.GetRepoPath()
 
 	return os.Symlink(repo_file_path, file_path)
 }
@@ -181,7 +127,7 @@ func (r *Repository) UninstallFile(id int) (err error) {
 	// restore backup if exists
 
 	if !rec.IsInstalled(r) {
-		return fmt.Errorf("File %d is not installed", id)
+		return fmt.Errorf("file %d is not installed", id)
 	}
 
 	file_path := rec.GetRealPath()
@@ -192,4 +138,104 @@ func (r *Repository) UninstallFile(id int) (err error) {
 	}
 
 	return utils.RestoreBackup(file_path)
+}
+
+func (x *Repository) addRecord(file_path string) (err error) {
+	if x.containsPath(file_path) {
+		log.Info("'%v' already contains file %v, skipping", x.Name, file_path)
+		return
+	}
+
+	// get file access rights and owner
+	var file *os.File
+	file, err = os.Open(file_path)
+	if err != nil {
+		return
+	}
+
+	var file_info os.FileInfo
+	file_info, err = file.Stat()
+	if err != nil {
+		return
+	}
+
+	//FIXME
+	uid := int(file_info.Sys().(*syscall.Stat_t).Uid)
+
+	var u *user.User
+	u, err = user.LookupId(strconv.Itoa(uid))
+	if err != nil {
+		return
+	}
+
+	newId := x.getFreeId()
+	newName := buildRepoFileName(file_path, newId)
+
+	// TODO add groups processing
+	record := new(Record)
+	record.Id = newId
+	record.SetRealPath(file_path)
+	record.User = u.Username
+	record.repository = x
+
+	// copy file to repository
+	err = utils.CopyFile(file_path, x.getRepoFilePath(newName))
+	if err != nil {
+		return
+	}
+
+	x.Records = append(x.Records, record)
+
+	err = x.writeConfig()
+	if err != nil {
+		return
+	}
+
+	log.Info("added file %v as %v", file_path, newName)
+	return
+}
+
+func (r *Repository) AddRecords(files ...string) (err error) {
+	for _, file_path := range files {
+		err = r.addRecord(file_path)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+func (r *Repository) removeRecord(id int) (err error) {
+	rec, pos, err := r.GetRecord(id)
+	if err != nil {
+		return
+	}
+
+	err = os.Remove(rec.GetRepoPath())
+	if err != nil {
+		return
+	}
+
+	// delete file from config
+	r.Records = append(r.Records[:pos], r.Records[pos+1:]...)
+
+	err = r.writeConfig()
+	if err != nil {
+		return
+	}
+
+	log.Debug("removed record %v", rec)
+
+	return
+}
+
+func (r *Repository) RemoveRecords(ids ...int) (err error) {
+	for _, id := range ids {
+		err = r.removeRecord(id)
+		if err != nil {
+			return
+		}
+	}
+	return
 }

@@ -3,6 +3,7 @@ export GOPATH=`pwd`
 go build mback
 rm -rf ~/temp/conf/i3
 rm test/testfile
+rm test/.testfile.mback
 
 cd test
 
@@ -19,9 +20,12 @@ cd test
 ../mback remove i3 1
 ../mback status i3
 
+../mback install 3
+
 echo "test file data" > testfile
 ../mback add i3 testfile
-../mback install 3
+../mback install i3 3
+../mback uninstall i3 3
 
 ../mback remove i3
 ../mback status i3
