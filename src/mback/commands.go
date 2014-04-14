@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	conf "mback/config"
 	"mback/log"
 	repo "mback/repository"
@@ -17,17 +18,9 @@ func Status(args ...string) {
 		log.Info("status:")
 		log.Info("root dir: %v", conf.GetRepositoryRoot())
 	case 1:
-		r := repo.New(args[0])
+		r := initRepo(args[0])
 
 		log.Info("status for repository %v:", r.Name)
-
-		exists := r.Exists()
-		if !exists {
-			log.Fatal("does not exists")
-		}
-
-		err = r.ReadConfig()
-		handleErr("can't read config file %v:")
 
 		log.Info("items in repository: %d", len(r.Records))
 		for _, rec := range r.Records {
@@ -47,7 +40,10 @@ func Add(args ...string) {
 	repo_name := args[0]
 	if args_len == 1 {
 		log.Info("creating repository '%s'", repo_name)
-		createRepo(repo_name)
+
+		_, err = repo.Create(repo_name)
+		handleErr("can't create repository: %v")
+
 		return
 	}
 
@@ -64,17 +60,14 @@ func Add(args ...string) {
 	handleErr("can't add files: %v")
 
 	for _, file := range files {
-		log.Info("* %s", file)
+		log.Info("  %s", file)
 	}
-	if !utils.Confirmation("proceed?") {
+	if !utils.Confirmation("Proceed?") {
 		log.Fatal("cancelled")
 	}
 
-	err = r.AddFiles(files...)
+	err = r.AddRecords(files...)
 	handleErr("can't add files: %v")
-
-	err = r.WriteConfig()
-	handleErr("can't write config: %v")
 }
 
 func Remove(args ...string) {
@@ -88,7 +81,17 @@ func Remove(args ...string) {
 
 	if args_len == 1 {
 		log.Info("removing repository '%s'", repo_name)
-		deleteRepo(repo_name)
+
+		r := initRepo(repo_name)
+
+		msg := fmt.Sprintf("repository %s contains %d items.\nDo you really want to delete it?", r.Name, len(r.Records))
+		if !utils.Confirmation(msg) {
+			log.Fatal("Cancelled")
+		}
+
+		err = r.Delete()
+		handleErr("can't delete repository: %v")
+
 		return
 	}
 
@@ -100,14 +103,23 @@ func Remove(args ...string) {
 	ids, err = parseIds(args[1:])
 	handleErr("can't parse file ids: %v")
 
-	for _, id := range ids {
+	records := make([]*repo.Record, len(ids))
+	for i, id := range ids {
 		var rec *repo.Record
 		rec, _, err = r.GetRecord(id)
 		handleErr("can't find record: %v")
-		log.Info("* %s", rec.GetRealPath())
+
+		records[i] = rec
+
+		log.Info("%d %s", rec.Id, rec.GetRealPath())
 	}
 
-	deleteFiles(&r, ids)
+	if !utils.Confirmation("Proceed?") {
+		log.Fatal("cancelled")
+	}
+
+	err = r.RemoveRecords(ids...)
+	handleErr("can't delete files: %v")
 }
 
 func Install(args ...string) {
@@ -125,16 +137,29 @@ func Install(args ...string) {
 	if args_len > 1 {
 		// if we specified list of file ids to install
 		ids, err = parseIds(args[1:])
-		handleErr("Can't parse file ids: %v")
+		handleErr("can't parse file ids: %v")
 	} else {
 		// if ids were not specified then install all repo files
 		ids = r.ListIds()
 	}
 
+	log.Info("installing files from '%s'", repo_name)
+	for _, id := range ids {
+		var rec *repo.Record
+		rec, _, err = r.GetRecord(id)
+		handleErr("can't find record: %v")
+
+		log.Info("%d %s", rec.Id, rec.GetRealPath())
+	}
+
+	if !utils.Confirmation("Proceed?") {
+		log.Fatal("cancelled")
+	}
+
 	// install all files
 	for _, id := range ids {
 		err = r.InstallFile(id)
-		handleErr("Can't install file " + string(id) + ": %v")
+		handleErr("can't install file " + string(id) + ": %v")
 	}
 }
 
@@ -142,7 +167,7 @@ func Uninstall(args ...string) {
 	args_len := len(args)
 
 	if args_len < 1 {
-		log.Fatal("Wrong number of arguments for uninstall: %v", args_len)
+		log.Fatal("wrong number of arguments for uninstall: %v", args_len)
 	}
 
 	repo_name := args[0]
@@ -159,10 +184,23 @@ func Uninstall(args ...string) {
 		ids = r.ListIds()
 	}
 
+	log.Info("uninstalling files from '%s'", repo_name)
+	for _, id := range ids {
+		var rec *repo.Record
+		rec, _, err = r.GetRecord(id)
+		handleErr("can't find record: %v")
+
+		log.Info("%d %s", rec.Id, rec.GetRealPath())
+	}
+
+	if !utils.Confirmation("Proceed?") {
+		log.Fatal("cancelled")
+	}
+
 	for _, id := range ids {
 		err = r.UninstallFile(id)
 		if err != nil {
-			log.Warn("Can't uninstall file %d: %v", id, err)
+			log.Warn("can't uninstall file %d: %v", id, err)
 		}
 	}
 }
