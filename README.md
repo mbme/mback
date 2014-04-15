@@ -1,5 +1,5 @@
 - check if files are installed when removing repo
-- load global config
 - handleErr string interpolation
+- file permissions
 - file system API to simplify testing
 - tests

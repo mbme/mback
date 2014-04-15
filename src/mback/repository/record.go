@@ -2,7 +2,6 @@ package repository
 
 import (
 	"mback/config"
-	conf "mback/config"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +16,7 @@ type Record struct {
 
 func (r *Record) GetRealPath() string {
 	if strings.HasPrefix(r.Path, "~/") {
-		return filepath.Join("/home", config.USER, r.Path[2:])
+		return filepath.Join("/home", config.GetConfig().User, r.Path[2:])
 	} else {
 		return r.Path
 	}
@@ -58,7 +57,7 @@ func (r *Record) IsInstalled(repo *Repository) bool {
 }
 
 func simplifyPath(file_path string) string {
-	home_dir := filepath.Join("/home", conf.USER)
+	home_dir := filepath.Join("/home", config.GetConfig().User)
 
 	if !strings.HasPrefix(file_path, home_dir) {
 		return file_path
@@ -66,7 +65,3 @@ func simplifyPath(file_path string) string {
 
 	return strings.Replace(file_path, home_dir, "~", 1)
 }
-
-// func (r *Record) String() string {
-// 	return r.GetRepoFileName()
-// }

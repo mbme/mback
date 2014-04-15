@@ -16,7 +16,7 @@ func Status(args ...string) {
 	switch args_len {
 	case 0:
 		log.Info("status:")
-		log.Info("root dir: %v", conf.GetRepositoryRoot())
+		log.Info("root dir: %v", conf.GetConfig().BaseDir)
 	case 1:
 		r := initRepo(args[0])
 

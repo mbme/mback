@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+const CONF_FILE_NAME = ".mback"
+
 func (r *Repository) getFreeId() int {
 	max := 0
 	r.each(func(rec *Record) {
@@ -20,7 +22,7 @@ func (r *Repository) getFreeId() int {
 }
 
 func (r *Repository) getConfigFilePath() string {
-	return r.getRepoFilePath(conf.CONF_FILE_NAME)
+	return r.getRepoFilePath(CONF_FILE_NAME)
 }
 
 func (r *Repository) getRepoFilePath(fileName string) string {
@@ -55,7 +57,7 @@ func exists(name string) bool {
 }
 
 func getRepoRootPath(name string) string {
-	return path.Join(conf.GetRepositoryRoot(), name)
+	return path.Join(conf.GetConfig().BaseDir, name)
 }
 
 func buildRepoFileName(path string, id int) string {
