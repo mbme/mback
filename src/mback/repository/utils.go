@@ -3,7 +3,7 @@ package repository
 import (
 	"fmt"
 	conf "mback/config"
-	"os"
+	"mback/utils"
 	"path/filepath"
 	path "path/filepath"
 	"strings"
@@ -21,18 +21,18 @@ func (r *Repository) getFreeId() int {
 	return max + 1
 }
 
-func (r *Repository) getConfigFilePath() string {
-	return r.getRepoFilePath(CONF_FILE_NAME)
+func (r *Repository) getConfigFile() *utils.File {
+	return r.getRepoFile(CONF_FILE_NAME)
 }
 
-func (r *Repository) getRepoFilePath(fileName string) string {
-	return filepath.Join(r.GetRootPath(), fileName)
+func (r *Repository) getRepoFile(fileName string) *utils.File {
+	return utils.NewFile(filepath.Join(r.GetRootPath(), fileName))
 }
 
 func (r *Repository) containsPath(path string) bool {
 	result := false
 	r.each(func(rec *Record) {
-		if rec.GetRealPath() == path {
+		if rec.GetFile().GetPath() == path {
 			result = true
 		}
 	})
@@ -52,8 +52,7 @@ func (r *Repository) eachPos(f func(*Record, int)) {
 }
 
 func exists(name string) bool {
-	_, err := os.Stat(getRepoRootPath(name))
-	return !os.IsNotExist(err)
+	return utils.NewFile(getRepoRootPath(name)).Exists()
 }
 
 func getRepoRootPath(name string) string {

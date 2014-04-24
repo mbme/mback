@@ -18,15 +18,17 @@ type Config struct {
 var instance *Config
 
 func GetConfig() *Config {
-	if instance == nil {
-		configPath := filepath.Join(getHomeDir(), ".config", "mback")
+	if instance != nil {
+		return instance
+	}
 
-		var err error
-		instance, err = readConfig(configPath)
+	configPath := filepath.Join(getHomeDir(), ".config", "mback")
 
-		if err != nil {
-			exit(fmt.Sprintf("can't load config: %v", err))
-		}
+	var err error
+	instance, err = readConfig(configPath)
+
+	if err != nil {
+		exit(fmt.Sprintf("can't load config: %v", err))
 	}
 
 	return instance

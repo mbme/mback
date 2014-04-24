@@ -4,14 +4,9 @@ import (
 	"fmt"
 	"mback/log"
 	"mback/utils"
-	"os"
-	"os/user"
-	"strconv"
-	"syscall"
 )
 
 const (
-	DIR_PERM         = 0755
 	FILE_PERM        = 0644
 	REPO_FILE_FORMAT = "%d %v"
 )
@@ -28,7 +23,7 @@ func Create(name string) (r Repository, err error) {
 
 	r = Repository{Name: name}
 
-	err = os.Mkdir(r.GetRootPath(), DIR_PERM)
+	err = utils.NewFile(r.GetRootPath()).Mkdir()
 	if err != nil {
 		return
 	}
@@ -64,7 +59,7 @@ func Open(name string) (r *Repository, err error) {
 }
 
 func (r *Repository) Delete() (err error) {
-	return os.RemoveAll(r.GetRootPath())
+	return utils.NewFile(r.GetRootPath()).RemoveAll()
 }
 
 func (r *Repository) GetRootPath() string {
@@ -101,19 +96,19 @@ func (r *Repository) InstallFile(id int) (err error) {
 		return
 	}
 
-	file_path := rec.GetRealPath()
+	file := rec.GetFile()
 
 	// first backup file if it exists
-	if _, err := os.Stat(file_path); !os.IsNotExist(err) {
-		err = utils.Backup(file_path)
+	if file.Exists() {
+		err = utils.Backup(file.GetPath())
 		if err != nil {
 			return err
 		}
 	}
 
-	repo_file_path := rec.GetRepoPath()
+	repoFile := rec.GetRepoFile()
 
-	return os.Symlink(repo_file_path, file_path)
+	return repoFile.Symlink(file.GetPath())
 }
 
 func (r *Repository) UninstallFile(id int) (err error) {
@@ -130,14 +125,13 @@ func (r *Repository) UninstallFile(id int) (err error) {
 		return fmt.Errorf("file %d is not installed", id)
 	}
 
-	file_path := rec.GetRealPath()
-
-	err = os.Remove(file_path)
+	file := rec.GetFile()
+	err = file.Remove()
 	if err != nil {
 		return
 	}
 
-	return utils.RestoreBackup(file_path)
+	return utils.RestoreBackup(file.GetPath())
 }
 
 func (x *Repository) addRecord(file_path string) (err error) {
@@ -147,39 +141,23 @@ func (x *Repository) addRecord(file_path string) (err error) {
 	}
 
 	// get file access rights and owner
-	var file *os.File
-	file, err = os.Open(file_path)
-	if err != nil {
-		return
-	}
-
-	var file_info os.FileInfo
-	file_info, err = file.Stat()
-	if err != nil {
-		return
-	}
-
-	//FIXME
-	uid := int(file_info.Sys().(*syscall.Stat_t).Uid)
-
-	var u *user.User
-	u, err = user.LookupId(strconv.Itoa(uid))
-	if err != nil {
-		return
-	}
+	file := utils.NewFile(file_path)
 
 	newId := x.getFreeId()
 	newName := buildRepoFileName(file_path, newId)
 
+	var fileInfo *utils.FileInfo
+	fileInfo, err = file.GetInfo()
+
 	// TODO add groups processing
 	record := new(Record)
 	record.Id = newId
-	record.SetRealPath(file_path)
-	record.User = u.Username
+	record.SetPath(file_path)
+	record.User = fileInfo.Owner
 	record.repository = x
 
 	// copy file to repository
-	err = utils.CopyFile(file_path, x.getRepoFilePath(newName))
+	err = file.CopyTo(x.getRepoFile(newName).GetPath())
 	if err != nil {
 		return
 	}
@@ -212,7 +190,7 @@ func (r *Repository) removeRecord(id int) (err error) {
 		return
 	}
 
-	err = os.Remove(rec.GetRepoPath())
+	err = rec.GetFile().Remove()
 	if err != nil {
 		return
 	}

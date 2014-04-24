@@ -1,10 +1,8 @@
 package repository
 
 import (
-	"mback/config"
-	"os"
-	"path/filepath"
-	"strings"
+	"fmt"
+	"mback/utils"
 )
 
 type Record struct {
@@ -14,54 +12,38 @@ type Record struct {
 	repository *Repository
 }
 
-func (r *Record) GetRealPath() string {
-	if strings.HasPrefix(r.Path, "~/") {
-		return filepath.Join("/home", config.GetConfig().User, r.Path[2:])
-	} else {
-		return r.Path
-	}
-}
-
-func (r *Record) SetRealPath(path string) {
-	r.Path = simplifyPath(path)
-}
-
 func (r *Record) GetRepoFileName() string {
 	return buildRepoFileName(r.Path, r.Id)
 }
 
-func (r *Record) GetRepoPath() string {
-	return r.repository.getRepoFilePath(r.GetRepoFileName())
+func (r *Record) GetRepoFile() *utils.File {
+	return r.repository.getRepoFile(r.GetRepoFileName())
+}
+
+func (r *Record) GetFile() *utils.File {
+	return utils.NewFile(r.Path)
+}
+
+func (r *Record) SetPath(path string) {
+	r.Path = utils.NewFile(path).SimplifyPath()
 }
 
 func (r *Record) IsInstalled(repo *Repository) bool {
-	realPath := r.GetRealPath()
+	installedFile := r.GetFile()
 
-	stat, err := os.Stat(realPath)
-
-	if err != nil {
+	if !installedFile.Exists() {
 		return false
 	}
 
-	if stat.Mode()&os.ModeSymlink != 0 {
+	if !installedFile.IsLink() {
 		return false
 	}
 
-	repoFileStat, err := os.Stat(r.GetRepoPath())
+	repoFile := r.GetRepoFile()
 
-	if err != nil {
-		return false
+	if !repoFile.Exists() {
+		panic(fmt.Sprintf("Repository file %v does not exists", r))
 	}
 
-	return os.SameFile(stat, repoFileStat)
-}
-
-func simplifyPath(file_path string) string {
-	home_dir := filepath.Join("/home", config.GetConfig().User)
-
-	if !strings.HasPrefix(file_path, home_dir) {
-		return file_path
-	}
-
-	return strings.Replace(file_path, home_dir, "~", 1)
+	return installedFile.SameFile(repoFile)
 }

@@ -24,7 +24,7 @@ func Status(args ...string) {
 
 		log.Info("items in repository: %d", len(r.Records))
 		for _, rec := range r.Records {
-			log.Info("%d  %v", rec.Id, rec.GetRealPath())
+			log.Info("%d  %v", rec.Id, rec.GetFile().GetPath())
 		}
 	default:
 		log.Fatal("too many arguments for status: %v", args_len)
@@ -111,7 +111,7 @@ func Remove(args ...string) {
 
 		records[i] = rec
 
-		log.Info("%d %s", rec.Id, rec.GetRealPath())
+		log.Info("%d %s", rec.Id, rec.GetFile().GetPath())
 	}
 
 	if !utils.Confirmation("Proceed?") {
@@ -149,7 +149,7 @@ func Install(args ...string) {
 		rec, _, err = r.GetRecord(id)
 		handleErr("can't find record: %v")
 
-		log.Info("%d %s", rec.Id, rec.GetRealPath())
+		log.Info("%d %s", rec.Id, rec.GetFile().GetPath())
 	}
 
 	if !utils.Confirmation("Proceed?") {
@@ -190,7 +190,7 @@ func Uninstall(args ...string) {
 		rec, _, err = r.GetRecord(id)
 		handleErr("can't find record: %v")
 
-		log.Info("%d %s", rec.Id, rec.GetRealPath())
+		log.Info("%d %s", rec.Id, rec.GetFile().GetPath())
 	}
 
 	if !utils.Confirmation("Proceed?") {

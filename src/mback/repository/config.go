@@ -29,7 +29,7 @@ func (r *Repository) readConfig() (err error) {
 		panic("config was already initialized earlier")
 	}
 
-	file_path := r.getConfigFilePath()
+	file_path := r.getConfigFile().GetPath()
 
 	file, err := os.Open(file_path)
 	if err != nil {
@@ -52,9 +52,9 @@ func (r *Repository) writeConfig() (err error) {
 		return
 	}
 
-	file_path := r.getConfigFilePath()
+	file_path := r.getConfigFile().GetPath()
 
-	file, err := os.OpenFile(file_path, os.O_WRONLY|os.O_CREATE, FILE_PERM)
+	file, err := os.OpenFile(file_path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, FILE_PERM)
 	if err != nil {
 		return
 	}
