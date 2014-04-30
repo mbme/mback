@@ -11,12 +11,10 @@ func init() {
 	utils.Conf = &utils.Config{User: USER}
 }
 
-type pair struct {
+var tests = []struct {
 	path   string
 	result string
-}
-
-var tests = []pair{
+}{
 	{"/etc/data/1", "/etc/data/1"},
 	{"/", "/"},
 	{"/home/" + USER + "/data", "~/data"},
