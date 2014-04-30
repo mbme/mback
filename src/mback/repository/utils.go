@@ -2,7 +2,6 @@ package repository
 
 import (
 	"fmt"
-	conf "mback/config"
 	"mback/utils"
 	"path/filepath"
 	path "path/filepath"
@@ -56,7 +55,7 @@ func exists(name string) bool {
 }
 
 func getRepoRootPath(name string) string {
-	return path.Join(conf.GetConfig().BaseDir, name)
+	return path.Join(utils.Conf.BaseDir, name)
 }
 
 func buildRepoFileName(path string, id int) string {

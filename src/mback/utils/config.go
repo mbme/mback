@@ -1,9 +1,10 @@
-package config
+package utils
 
 import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mback/log"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -15,30 +16,24 @@ type Config struct {
 	User     string `json:"user"`
 }
 
-var instance *Config
+var Conf *Config
 
-func GetConfig() *Config {
-	if instance != nil {
-		return instance
-	}
-
+func LoadConfig() {
 	configPath := filepath.Join(getHomeDir(), ".config", "mback")
 
 	var err error
-	instance, err = readConfig(configPath)
+	Conf, err = readConfig(configPath)
 
 	if err != nil {
-		exit(fmt.Sprintf("can't load config: %v", err))
+		log.Fatal("can't load config: %v", err)
 	}
-
-	return instance
 }
 
 func getCurrentUser() *user.User {
 	user, err := user.Current()
 
 	if err != nil {
-		exit(fmt.Sprintf("can't get current user: %v", err))
+		log.Fatal("can't get current user: %v", err)
 	}
 
 	return user

@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"mback/config"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -32,7 +31,7 @@ func NewFile(path string) *File {
 }
 
 func simplifyPath(file_path string) string {
-	home_dir := filepath.Join("/home", config.GetConfig().User)
+	home_dir := filepath.Join("/home", Conf.User)
 
 	if !strings.HasPrefix(file_path, home_dir) {
 		return file_path
@@ -47,7 +46,7 @@ func (f *File) SimplifyPath() string {
 
 func (f *File) GetPath() string {
 	if strings.HasPrefix(f.path, "~/") {
-		return filepath.Join("/home", config.GetConfig().User, f.path[2:])
+		return filepath.Join("/home", Conf.User, f.path[2:])
 	}
 
 	return f.path

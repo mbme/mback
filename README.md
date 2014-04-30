@@ -1,4 +1,5 @@
 - check if files are installed when removing repo
+- add ids to repo file names only if already added files with same names
 - handleErr string interpolation
 - file permissions
 - file system API to simplify testing

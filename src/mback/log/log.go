@@ -1,10 +1,11 @@
 package log
 
-import "os"
-import "fmt"
-import "mback/config"
+import (
+	"fmt"
+	"os"
+)
 
-var LOG_LEVEL = config.GetConfig().LogLevel
+var LogLevel uint8 = 1
 
 func log(level string, msg string, params ...interface{}) {
 	str := fmt.Sprintf(level+msg, params...)
@@ -12,21 +13,21 @@ func log(level string, msg string, params ...interface{}) {
 }
 
 func Debug(msg string, params ...interface{}) {
-	if LOG_LEVEL > 0 {
+	if LogLevel > 0 {
 		return
 	}
 	log("DEBUG: ", msg, params...)
 }
 
 func Info(msg string, params ...interface{}) {
-	if LOG_LEVEL > 1 {
+	if LogLevel > 1 {
 		return
 	}
 	log("", msg, params...)
 }
 
 func Warn(msg string, params ...interface{}) {
-	if LOG_LEVEL > 2 {
+	if LogLevel > 2 {
 		return
 	}
 	log(" WARN: ", msg, params...)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"mback/log"
+	"mback/utils"
 	"os"
 )
 
@@ -14,6 +15,9 @@ var commands = map[string]func(...string){
 }
 
 func main() {
+	utils.LoadConfig()
+	log.LogLevel = utils.Conf.LogLevel
+
 	log.Debug("Args: %v", os.Args)
 
 	args_len := len(os.Args)

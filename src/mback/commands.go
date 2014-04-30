@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	conf "mback/config"
 	"mback/log"
 	repo "mback/repository"
 	"mback/utils"
@@ -16,7 +15,7 @@ func Status(args ...string) {
 	switch args_len {
 	case 0:
 		log.Info("status:")
-		log.Info("root dir: %v", conf.GetConfig().BaseDir)
+		log.Info("root dir: %v", utils.Conf.BaseDir)
 	case 1:
 		r := initRepo(args[0])
 

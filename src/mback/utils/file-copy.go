@@ -45,7 +45,7 @@ func copyDir(src, dst string) error {
 		return err
 	}
 	if isLink {
-		log.Debug("%v is symlink, skipping", src)
+		log.Info("%v is symlink, not copying", src)
 		return nil
 	}
 
