@@ -1,5 +1,7 @@
 export GOPATH=`pwd`
 
+go test mback/...
+exit 0
 go build mback
 rm -rf ~/temp/conf/i3
 rm test/testfile
