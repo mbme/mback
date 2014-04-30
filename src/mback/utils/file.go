@@ -69,10 +69,6 @@ func (f *File) Symlink(link_path string) error {
 	return os.Symlink(f.GetPath(), link_path)
 }
 
-func (f *File) CopyTo(new_path string) error {
-	return CopyFile(f.GetPath(), new_path)
-}
-
 func (f *File) GetInfo() (info *FileInfo, err error) {
 	info = &FileInfo{}
 
@@ -111,12 +107,20 @@ func (f *File) Exists() bool {
 }
 
 func (f *File) IsLink() bool {
+	isLink, err := isSymlink(f.GetPath())
+	if err != nil {
+		return false
+	}
+	return isLink
+}
+
+func (f *File) IsDir() bool {
 	stats, err := f.stats()
 	if err != nil {
 		return false
 	}
 
-	return stats.Mode()&os.ModeSymlink == 0
+	return stats.IsDir()
 }
 
 func (f *File) SameFile(other *File) bool {
@@ -131,4 +135,21 @@ func (f *File) SameFile(other *File) bool {
 	}
 
 	return os.SameFile(stats, otherStats)
+}
+
+func (f *File) CopyTo(dst string) error {
+	if f.IsDir() {
+		return copyDir(f.GetPath(), dst)
+	} else {
+		return copyFile(f.GetPath(), dst)
+	}
+}
+
+func isSymlink(src string) (bool, error) {
+	fi, err := os.Lstat(src)
+	if err != nil {
+		return false, err
+	}
+
+	return fi.Mode()&os.ModeSymlink == os.ModeSymlink, nil
 }

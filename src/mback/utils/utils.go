@@ -3,7 +3,6 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"io"
 	"mback/log"
 	"os"
 	"path/filepath"
@@ -38,37 +37,24 @@ func ListFiles(baseDir string, args ...string) (result []string, err error) {
 
 	files := make(map[string]bool, 10)
 
-	// simple function to add file to set only if it does not already there
-	addFile := func(file string) {
-		//check if file exists and is not a directory
-		if file_info, err := os.Stat(file); err != nil || file_info.IsDir() {
-			return
-		}
-
-		if _, contains := files[file]; !contains {
-			files[file] = true
-			log.Debug("Adding file %v", file)
-		}
-	}
-
 	// all other params should be file names
 	for _, name := range args {
 		file_path := filepath.Join(baseDir, name)
 
-		// check if real file path specified
-		if _, err := os.Stat(file_path); err != nil {
-			addFile(file_path)
+		file := NewFile(file_path)
+
+		if !file.Exists() {
 			continue
 		}
 
-		// else try to use globs
-		paths, err := filepath.Glob(file_path)
-		if err != nil {
-			log.Fatal("Bad pattern: %v", file_path)
-		}
-
-		for _, file := range paths {
-			addFile(file)
+		// adding file only if not exist yet
+		if _, contains := files[file_path]; !contains {
+			files[file_path] = true
+			if file.IsDir() {
+				log.Debug("Adding dir %v", file_path)
+			} else {
+				log.Debug("Adding file %v", file_path)
+			}
 		}
 	}
 
@@ -80,26 +66,6 @@ func ListFiles(baseDir string, args ...string) (result []string, err error) {
 	}
 
 	return
-}
-
-func CopyFile(src, dst string) error {
-	s, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	// no need to check errors on read only file, we already got everything
-	// we need from the filesystem, so nothing can go wrong now.
-	defer s.Close()
-
-	d, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	if _, err := io.Copy(d, s); err != nil {
-		d.Close()
-		return err
-	}
-	return d.Close()
 }
 
 // Create file backup
