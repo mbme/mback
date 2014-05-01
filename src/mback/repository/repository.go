@@ -59,7 +59,7 @@ func Open(name string) (r *Repository, err error) {
 }
 
 func (r *Repository) Delete() (err error) {
-	return utils.NewFile(r.GetRootPath()).RemoveAll()
+	return utils.NewFile(r.GetRootPath()).Remove(true)
 }
 
 func (r *Repository) GetRootPath() string {
@@ -100,7 +100,7 @@ func (r *Repository) InstallFile(id int) (err error) {
 
 	// first backup file if it exists
 	if file.Exists() {
-		err = utils.Backup(file.GetPath())
+		err = utils.Backup(file)
 		if err != nil {
 			return err
 		}
@@ -121,17 +121,21 @@ func (r *Repository) UninstallFile(id int) (err error) {
 	// remove symlink
 	// restore backup if exists
 
-	if !rec.IsInstalled() {
+	isInstalled, err := rec.IsInstalled()
+	if err != nil {
+		return
+	}
+	if !isInstalled {
 		return fmt.Errorf("file %d is not installed", id)
 	}
 
 	file := rec.GetFile()
-	err = file.Remove()
+	err = file.Remove(false)
 	if err != nil {
 		return
 	}
 
-	return utils.RestoreBackup(file.GetPath())
+	return utils.RestoreBackup(file)
 }
 
 func (x *Repository) addRecord(file_path string) (err error) {
@@ -190,7 +194,7 @@ func (r *Repository) removeRecord(id int) (err error) {
 		return
 	}
 
-	err = rec.GetFile().Remove()
+	err = rec.GetFile().Remove(false)
 	if err != nil {
 		return
 	}

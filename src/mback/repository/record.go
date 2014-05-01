@@ -25,18 +25,19 @@ func (r *Record) GetFile() *utils.File {
 }
 
 func (r *Record) SetPath(path string) {
-	r.Path = utils.NewFile(path).SimplifyPath()
+	r.Path = utils.SimplifyPath(path)
 }
 
-func (r *Record) IsInstalled() bool {
+func (r *Record) IsInstalled() (bool, error) {
 	installedFile := r.GetFile()
 
 	if !installedFile.Exists() {
-		return false
+		return false, nil
 	}
 
-	if !installedFile.IsLink() {
-		return false
+	isLink, err := installedFile.IsLink()
+	if err != nil || !isLink {
+		return false, err
 	}
 
 	repoFile := r.GetRepoFile()

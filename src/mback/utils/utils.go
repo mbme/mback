@@ -34,8 +34,7 @@ func Confirmation(msg string) (resp bool) {
 }
 
 func ListFiles(baseDir string, args ...string) (result []string, err error) {
-
-	files := make(map[string]bool, 10)
+	files := make(map[string]bool, len(args))
 
 	// all other params should be file names
 	for _, name := range args {
@@ -50,11 +49,7 @@ func ListFiles(baseDir string, args ...string) (result []string, err error) {
 		// adding file only if not exist yet
 		if _, contains := files[file_path]; !contains {
 			files[file_path] = true
-			if file.IsDir() {
-				log.Debug("Adding dir %v", file_path)
-			} else {
-				log.Debug("Adding file %v", file_path)
-			}
+			log.Debug("Adding %v", file_path)
 		}
 	}
 
@@ -69,25 +64,26 @@ func ListFiles(baseDir string, args ...string) (result []string, err error) {
 }
 
 // Create file backup
-func Backup(file_path string) error {
-	return os.Rename(file_path, getBackupFile(file_path))
+func Backup(file *File) error {
+	return Fs.Move(file, getBackupFile(file))
 }
 
-func RestoreBackup(file_path string) error {
-	return os.Rename(getBackupFile(file_path), file_path)
+func RestoreBackup(file *File) error {
+	return Fs.Move(getBackupFile(file), file)
 }
 
-func getBackupFile(file_path string) (backup_file string) {
-	base, file := filepath.Split(file_path)
+func getBackupFile(file *File) (backupFile *File) {
+	base, name := filepath.Split(file.GetPath())
 
+	var backupName string
 	// check if file is hidden, and if not then hide it
-	if file[0] == '.' {
-		backup_file = file + BACKUP_EXT
+	if name[0] == '.' {
+		backupName = name + BACKUP_EXT
 	} else {
-		backup_file = "." + file + BACKUP_EXT
+		backupName = "." + name + BACKUP_EXT
 	}
 
-	return filepath.Join(base, backup_file)
+	return NewFile(filepath.Join(base, backupName))
 }
 
 func GetWorkingDir() (wd string, err error) {
