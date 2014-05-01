@@ -121,7 +121,7 @@ func (r *Repository) UninstallFile(id int) (err error) {
 	// remove symlink
 	// restore backup if exists
 
-	if !rec.IsInstalled(r) {
+	if !rec.IsInstalled() {
 		return fmt.Errorf("file %d is not installed", id)
 	}
 

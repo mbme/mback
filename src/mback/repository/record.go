@@ -28,7 +28,7 @@ func (r *Record) SetPath(path string) {
 	r.Path = utils.NewFile(path).SimplifyPath()
 }
 
-func (r *Record) IsInstalled(repo *Repository) bool {
+func (r *Record) IsInstalled() bool {
 	installedFile := r.GetFile()
 
 	if !installedFile.Exists() {
