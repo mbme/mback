@@ -11,7 +11,7 @@ import (
 const CONF_FILE_NAME = ".mback"
 
 func (r *Repository) getFreeId() int {
-	max := 0
+	max := -1
 	r.each(func(rec *Record) {
 		if rec.Id > max {
 			max = rec.Id

@@ -34,3 +34,18 @@ func TestSetPath(t *testing.T) {
 		}
 	}
 }
+
+func TestGetPath(t *testing.T) {
+	for _, pair := range tests {
+		rec := &Record{}
+		rec.SetPath(pair.path)
+
+		path := rec.GetFile().GetPath()
+		if path != pair.path {
+			t.Error(
+				"For", pair.path,
+				"got", rec.Path,
+			)
+		}
+	}
+}
