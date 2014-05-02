@@ -15,9 +15,8 @@ var commands = map[string]func(...string){
 }
 
 func main() {
-	utils.LoadConfig()
 	utils.Fs = &utils.RealFS{}
-	log.LogLevel = utils.Conf.LogLevel
+	utils.LoadConfig()
 
 	log.Debug("Args: %v", os.Args)
 

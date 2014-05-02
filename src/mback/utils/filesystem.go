@@ -5,6 +5,9 @@ type FileSystem interface {
 	Symlink(src, dst *File) error
 	Move(src, dst *File) error
 
+	Read(src *File) ([]byte, error)
+	Write(file *File, data []byte) error
+
 	CopyFile(src, dst *File) error
 	CopyDir(src, dst *File) error
 

@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"mback/log"
 	"os"
 	"os/user"
@@ -182,5 +183,29 @@ func (fs *RealFS) CopyDir(src, dst *File) error {
 			return fs.CopyFile(pathFile, NewFile(newPath))
 		})
 
+	return err
+}
+
+func (fs *RealFS) Read(src *File) ([]byte, error) {
+	file, err := os.Open(src.GetPath())
+	if err != nil {
+		return nil, err
+	}
+
+	defer file.Close()
+
+	return ioutil.ReadAll(file)
+}
+
+func (fs *RealFS) Write(file *File, data []byte) error {
+	f, err := os.OpenFile(file.GetPath(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, FILE_PERM)
+
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	_, err = f.Write(data)
 	return err
 }

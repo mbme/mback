@@ -1,11 +1,7 @@
 package utils
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
 	"mback/log"
-	"os"
 	"os/user"
 	"path/filepath"
 )
@@ -21,12 +17,20 @@ var Conf *Config
 func LoadConfig() {
 	configPath := filepath.Join(getHomeDir(), ".config", "mback")
 
-	var err error
-	Conf, err = readConfig(configPath)
+	config := NewFile(configPath)
 
+	data, err := Fs.Read(config)
 	if err != nil {
 		log.Fatal("can't load config: %v", err)
 	}
+
+	Conf = &Config{}
+	err = Decode(data, Conf)
+	if err != nil {
+		log.Fatal("can't load config: %v", err)
+	}
+
+	log.LogLevel = Conf.LogLevel
 }
 
 func getCurrentUser() *user.User {
@@ -43,36 +47,4 @@ func getHomeDir() string {
 	user := getCurrentUser()
 
 	return user.HomeDir
-}
-
-func (c *Config) decode(reader io.Reader) (err error) {
-	err = json.NewDecoder(reader).Decode(c)
-	return
-}
-
-func readConfig(filePath string) (c *Config, err error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return
-	}
-
-	defer file.Close()
-
-	c = &Config{}
-
-	err = c.decode(file)
-	if err != nil {
-		return
-	}
-
-	if c.User == "" {
-		c.User = getCurrentUser().Username
-	}
-
-	return
-}
-
-func exit(msg string) {
-	fmt.Println(msg)
-	os.Exit(1)
 }

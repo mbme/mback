@@ -114,3 +114,13 @@ func GetWorkingDir() (wd string, err error) {
 	err = errors.New("can't find env variable PWD")
 	return
 }
+
+func SimplifyPath(file_path string) string {
+	home_dir := filepath.Join("/home", Conf.User)
+
+	if !strings.HasPrefix(file_path, home_dir) {
+		return file_path
+	}
+
+	return strings.Replace(file_path, home_dir, "~", 1)
+}

@@ -1,66 +1,32 @@
 package repository
 
 import (
-	"encoding/json"
 	"errors"
-	"io"
-	"os"
+	"mback/utils"
 )
 
-func (r *Repository) decode(reader io.Reader) (err error) {
-	err = json.NewDecoder(reader).Decode(r)
-	return
-}
-
-func (r *Repository) encode(f *os.File) (err error) {
-	data, err := json.MarshalIndent(r, "", "  ")
-
-	if err != nil {
-		return
-	}
-
-	_, err = f.Write(data)
-
-	return
-}
-
-func (r *Repository) readConfig() (err error) {
+func (r *Repository) readConfig() error {
 	if r.Records != nil {
 		panic("config was already initialized earlier")
 	}
 
-	file_path := r.getConfigFile().GetPath()
-
-	file, err := os.Open(file_path)
+	data, err := utils.Fs.Read(r.getConfigFile())
 	if err != nil {
-		return
+		return err
 	}
 
-	defer file.Close()
-
-	err = r.decode(file)
-	if err != nil {
-		return
-	}
-
-	return
+	return utils.Decode(data, r)
 }
 
-func (r *Repository) writeConfig() (err error) {
+func (r *Repository) writeConfig() error {
 	if r.Records == nil {
-		err = errors.New("Repository config is nil")
-		return
+		return errors.New("Repository config is nil")
 	}
 
-	file_path := r.getConfigFile().GetPath()
-
-	file, err := os.OpenFile(file_path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, FILE_PERM)
+	data, err := utils.Encode(r)
 	if err != nil {
-		return
+		return err
 	}
 
-	defer file.Close()
-
-	err = r.encode(file)
-	return
+	return utils.Fs.Write(r.getConfigFile(), data)
 }

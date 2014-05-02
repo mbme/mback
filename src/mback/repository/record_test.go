@@ -44,7 +44,7 @@ func TestGetPath(t *testing.T) {
 		if path != pair.path {
 			t.Error(
 				"For", pair.path,
-				"got", rec.Path,
+				"got", path,
 			)
 		}
 	}

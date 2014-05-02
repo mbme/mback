@@ -14,25 +14,20 @@ type FileInfo struct {
 }
 
 func NewFile(path string) *File {
-	f := &File{}
-	f.path = SimplifyPath(path)
+	f := &File{path: path}
 
 	return f
 }
 
-func SimplifyPath(file_path string) string {
-	home_dir := filepath.Join("/home", Conf.User)
-
-	if !strings.HasPrefix(file_path, home_dir) {
-		return file_path
-	}
-
-	return strings.Replace(file_path, home_dir, "~", 1)
-}
-
 func (f *File) GetPath() string {
 	if strings.HasPrefix(f.path, "~/") {
-		return filepath.Join("/home", Conf.User, f.path[2:])
+		var user string
+		if Conf == nil {
+			user = getCurrentUser().Username
+		} else {
+			user = Conf.User
+		}
+		return filepath.Join("/home", user, f.path[2:])
 	}
 
 	return f.path
