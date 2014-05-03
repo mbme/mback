@@ -2,5 +2,5 @@
 - add ids to repo file names only if already added files with same names
 - handleErr string interpolation
 - file permissions
-- file system API to simplify testing
 - tests
+- use system log instead of own
